@@ -5,8 +5,8 @@ from vk_api.utils import get_random_id
 
 from config import comunity_token, acces_token
 from core import vkTools
-from data_store import add_user, engine
-from data_store import chek_user
+from data_store import add_user, engine, chek_user
+
 
 
 class BotInterface():
@@ -30,10 +30,10 @@ class BotInterface():
 
     def process_search(self, event, params, offset):
         self.worksheets = self.vkTools.search_worksheets(self.params, self.offset
-        )
+                                                         )
         self.offset += 10
         worksheet = self.worksheets.pop()
-        while chek_user(engine, event.user_id,worksheet["id"]) is True:
+        while chek_user(engine, event.user_id, worksheet["id"]) is True:
             if len(self.worksheets) != 0:
                 worksheet = self.worksheets.pop()
                 continue
@@ -42,9 +42,12 @@ class BotInterface():
         else:
             self.worksheet_cheked = worksheet
 
+
     # Обработка событий / Получение сообщений
     def event_handler(self):
         longpoll = VkLongPoll(self.interface)
+        user_city = None  # Переменная для хранения введенного города
+        user_age = None  # Переменная для хранения введенного возраста
         for event in longpoll.listen():
             if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                 if event.text.lower() == 'привет':
@@ -76,6 +79,21 @@ class BotInterface():
                         attachment=photo_string
                     )
 
+                elif event.text.lower() == 'город':
+                    self.message_send(event.user_id,
+                                      'Вы должны ввести город  в следующем формате: город <название города>. Например: город Москва')
+                elif event.text.lower().startswith('город '):
+                    city = event.text.lower().split('город ')[1]
+                    user_city = city  # Сохраняем введенный город в переменной user_city
+                    self.message_send(event.user_id, f'Ваш город: {user_city.capitalize ()}')
+                elif event.text.lower().startswith('возраст '):
+                    age_str = event.text.lower().split('возраст ')[1]
+                    if not age_str ==  None:
+                        user_age = int(age_str)  # Сохраняем введенный возраст в переменную user_age
+                        self.message_send(event.user_id, f'Ваш возраст: {user_age}')
+                    else:
+                        self.message_send(event.user_id,
+                                          'Некорректный формат возраста. Пожалуйста, введите возраст в виде целого числа.')
                 elif event.text.lower() == 'пока':
                     self.message_send(event.user_id, 'Пока')
                 else:
@@ -84,5 +102,5 @@ class BotInterface():
 
 
 if __name__ == '__main__':
-    bot_interface = BotInterface(comunity_token, acces_token )
+    bot_interface = BotInterface(comunity_token, acces_token)
     bot_interface.event_handler()
